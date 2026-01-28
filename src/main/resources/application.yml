@@ -6,7 +6,7 @@ spring:
     name: Auth
 
   datasource:
-    url: jdbc:mysql://localhost:4306/spring_boot_auth_db?createDatabaseIfNotExist=true
+    url: jdbc:mysql://localhost:4306/spring_boot_jwt_auth_db?createDatabaseIfNotExist=true
     username: root
     password: root
     driver-class-name: com.mysql.cj.jdbc.Driver
