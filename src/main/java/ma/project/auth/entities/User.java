@@ -23,9 +23,13 @@ public class User extends BaseEntity {
     @Column(nullable = false)
     private String password;
 
+    @Builder.Default
+    private String role = "USER";
+
     @Column(nullable = false)
     private String username;
 
+    @Builder.Default
     @Column(nullable = false)
     private boolean enabled = true;
 }

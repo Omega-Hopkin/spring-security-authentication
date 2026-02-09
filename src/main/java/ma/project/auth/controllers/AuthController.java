@@ -1,8 +1,7 @@
 package ma.project.auth.controllers;
 
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import ma.project.auth.security.JwtUtils;
 import ma.project.auth.dto.AuthResponse;
 import ma.project.auth.dto.ChangePasswordRequest;
 import ma.project.auth.dto.LoginRequest;
@@ -11,18 +10,15 @@ import ma.project.auth.entities.User;
 import ma.project.auth.security.CustomUserDetails;
 import ma.project.auth.security.CustomUserDetailsService;
 import ma.project.auth.services.UserService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.*;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
-import org.springframework.security.web.context.SecurityContextRepository;
+//import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+//import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
-
 import java.util.Map;
 
 @CrossOrigin(origins = "*")
@@ -33,8 +29,9 @@ public class AuthController {
     private final UserService userService;
     private final AuthenticationManager authenticationManager;
 
-    private final SecurityContextRepository securityContextRepository = new HttpSessionSecurityContextRepository();
+    //private final SecurityContextRepository securityContextRepository = new HttpSessionSecurityContextRepository();
     private final CustomUserDetailsService customUserDetailsService;
+    private final JwtUtils jwtUtils;
 
     @GetMapping("/home")
     public String home() {
@@ -55,15 +52,39 @@ public class AuthController {
             User user = userService.registerUser(request);
 
             //return ResponseEntity.ok(user);
-            return ResponseEntity.ok(new AuthResponse("Inscription réussie pour l'email : " + user.getEmail()));
+            return ResponseEntity.ok(new AuthResponse("Inscription réussie pour l'email : ", user.getEmail()));
+            /*return ResponseEntity.ok(AuthResponse.builder()
+                .message("Inscription réussie"))
+                .email(user.getEmail())
+                .build();*/
         }
         catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
+
+        /*
+        //auto-login après register
+        User user = userService.registerUser(request);
+
+        UserDetails userDetails = customUserDetailsService.loadUserByUsername(user.getEmail());
+
+        UsernamePasswordAuthenticationToken auth =
+            new UsernamePasswordAuthenticationToken(
+                userDetails,
+                null,
+                userDetails.getAuthorities()
+            );
+
+        String jwtToken = jwtUtils.generateToken(auth);
+
+        return ResponseEntity.ok(
+            new AuthResponse("Inscription réussie", user.getEmail(), jwtToken)
+        );
+        */
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest request, HttpServletResponse httpResponse, HttpServletRequest httpRequest) {
+    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
         try {
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
@@ -72,15 +93,17 @@ public class AuthController {
                     )
             );
 
-            SecurityContext context = SecurityContextHolder.createEmptyContext();
-            context.setAuthentication(authentication);
-            SecurityContextHolder.setContext(context);
-            securityContextRepository.saveContext(context, httpRequest, httpResponse);
+            String jwtToken = jwtUtils.generateToken(authentication);
 
             //stocke l'authentication dans le SecurityContext
             //SecurityContextHolder.getContext().setAuthentication(authentication);
 
-            return ResponseEntity.ok(new AuthResponse("Connexion pour l'email : " + request.getEmail()));
+            //return ResponseEntity.ok(new AuthResponse("Connexion pour l'email : " + request.getEmail(), jwtToken));
+            return ResponseEntity.ok(AuthResponse.builder()
+                    .message("Connexion réussié")
+                    .email(request.getEmail())
+                    .token(jwtToken)
+                    .build());
         }
         catch (DisabledException e) {
             // Renvoie un 403 ou 401 explicite au lieu de 500
@@ -194,6 +217,13 @@ public class AuthController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Erreur lors de la mise à jour du mot de passe: " + e.getMessage());
         }
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout() {
+        return ResponseEntity.ok(Map.of(
+                "message", "Déconnexion réussie. Supprimez le token côté client."
+        ));
     }
 
     @PostMapping("/disable-account")

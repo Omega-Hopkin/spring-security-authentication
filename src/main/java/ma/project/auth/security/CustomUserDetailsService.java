@@ -1,7 +1,7 @@
 package ma.project.auth.security;
 
 import lombok.RequiredArgsConstructor;
-import ma.project.auth.UserRepository;
+import ma.project.auth.repositories.UserRepository;
 import ma.project.auth.entities.User;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;

@@ -1,4 +1,4 @@
-package ma.project.auth;
+package ma.project.auth.security;
 
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -11,7 +11,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 //import org.springframework.stereotype.Service;
 import io.jsonwebtoken.*;
 import javax.crypto.SecretKey;
-import java.nio.charset.StandardCharsets;
 import java.util.function.Function;
 import java.util.Date;
 import io.jsonwebtoken.Claims;

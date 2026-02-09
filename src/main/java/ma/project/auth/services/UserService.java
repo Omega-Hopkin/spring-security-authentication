@@ -1,9 +1,8 @@
 package ma.project.auth.services;
 
 import lombok.RequiredArgsConstructor;
-import ma.project.auth.UserRepository;
+import ma.project.auth.repositories.UserRepository;
 import ma.project.auth.dto.RegisterRequest;
-import org.apache.coyote.Response;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;

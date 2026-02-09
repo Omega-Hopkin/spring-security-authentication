@@ -17,7 +17,8 @@ public class CustomUserDetails implements UserDetails {
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         // Pour l'instant, un seul rôle
-        return List.of(new SimpleGrantedAuthority("ROLE_USER"));
+        //return List.of(new SimpleGrantedAuthority(user.getRole())); // "ROLE_USER" ou "ROLE_ADMIN", etc.
+        return List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole())); // si tu veux préfixer avec "ROLE_"
 
         // Plus tard, tu pourras faire :
         // return user.getRoles().stream()

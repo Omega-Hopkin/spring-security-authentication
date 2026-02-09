@@ -4,11 +4,14 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import ma.project.auth.security.CustomUserDetailsService;
+import ma.project.auth.security.JwtAuthFilter;
+import ma.project.auth.security.JwtAuthenticationEntryPoint;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 //import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -16,15 +19,19 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 //import org.springframework.web.servlet.config.annotation.CorsRegistry;
 
 @Slf4j
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
-    //private final CustomUserDetailsService customUserDetailsService;
-    private final CustomUserDetailsService userDetailsService;
+    private final CustomUserDetailsService customUserDetailsService;
+    private final JwtAuthFilter jwtAuthFilter;
+    private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+    //private final CustomUserDetailsService userDetailsService;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -39,6 +46,48 @@ public class SecurityConfig {
     }
 
     @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http
+            .csrf(AbstractHttpConfigurer::disable)
+            .cors(AbstractHttpConfigurer::disable)
+            //.cors(Customizer.withDefaults())
+            .authorizeHttpRequests(requests -> requests
+                    .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/home", "/api/auth/enable-account", "/error").permitAll()
+                    .anyRequest().authenticated()
+            )
+            /*.exceptionHandling(ex -> ex
+                    .authenticationEntryPoint((request, response, authException) -> {
+                        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                        response.setContentType("application/json");
+                        response.getWriter().write("{\"error\":\"Unauthorized\",\"message\":\"" + authException.getMessage() + "\"}");
+                    })
+            )*/
+            .exceptionHandling(ex -> ex
+                    .authenticationEntryPoint(jwtAuthenticationEntryPoint)
+            )
+            .logout(logout -> logout
+            .logoutUrl("/api/auth/logout")
+            .logoutSuccessHandler((request, response, authentication) -> {
+                response.setStatus(HttpServletResponse.SC_OK);
+                response.setContentType("application/json");
+                response.getWriter().write("{\"message\": \"Déconnexion réussie\"}");
+            })
+
+            .permitAll()
+        )
+        .sessionManagement(
+                manager -> manager.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+        )
+
+        .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+        .formLogin(AbstractHttpConfigurer::disable)
+        .httpBasic(AbstractHttpConfigurer::disable);
+
+        return http.build();
+    }
+
+    //will be deleeeeted hhh (related to classic authentication with not JWT)
+    /*@Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
@@ -75,7 +124,7 @@ public class SecurityConfig {
         //.authenticationProvider(authenticationProvider());
 
         return http.build();
-    }
+    }*/
 
     /**
     - déprécié avec Spring Security 6.x
@@ -110,6 +159,12 @@ public class SecurityConfig {
 
         return http.build();
     }*/
+
+    /*
+        DaoAuthenticationProvider n'est pas déprécié.
+        Par contre, dans Spring Security 6, si on exposes un UserDetailsService et un PasswordEncoder comme Beans,
+        Spring configure automatiquement un DaoAuthenticationProvider.
+     */
 
     /*
     ### `PasswordEncoder`
